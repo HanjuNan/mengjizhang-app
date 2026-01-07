@@ -1,6 +1,7 @@
 package com.mengjizhang.app.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,7 +80,10 @@ private val menuItems = listOf(
 )
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    onNavigateToBudget: () -> Unit = {},
+    onNavigateToExport: () -> Unit = {}
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -207,7 +211,16 @@ fun ProfileScreen() {
 
         // Menu Items
         items(menuItems) { item ->
-            MenuItemRow(item = item)
+            MenuItemRow(
+                item = item,
+                onClick = {
+                    when (item.label) {
+                        "预算设置" -> onNavigateToBudget()
+                        "数据备份" -> onNavigateToExport()
+                        // 其他菜单项可以在这里添加处理
+                    }
+                }
+            )
             Spacer(modifier = Modifier.height(8.dp))
         }
 
@@ -275,9 +288,14 @@ private fun BadgeItem(badge: Badge) {
 }
 
 @Composable
-private fun MenuItemRow(item: MenuItem) {
+private fun MenuItemRow(
+    item: MenuItem,
+    onClick: () -> Unit = {}
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {

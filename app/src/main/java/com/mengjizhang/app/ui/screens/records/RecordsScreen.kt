@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -49,7 +49,8 @@ import java.util.Locale
 @Composable
 fun RecordsScreen(
     viewModel: RecordViewModel? = null,
-    onNavigateToDetail: (Long) -> Unit = {}
+    onNavigateToDetail: (Long) -> Unit = {},
+    onNavigateToSearch: () -> Unit = {}
 ) {
     val currentYear by viewModel?.currentYear?.collectAsState() ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     val currentMonth by viewModel?.currentMonth?.collectAsState() ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(Calendar.getInstance().get(Calendar.MONTH) + 1) }
@@ -90,10 +91,10 @@ fun RecordsScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-            IconButton(onClick = { }) {
+            IconButton(onClick = onNavigateToSearch) {
                 Icon(
-                    imageVector = Icons.Default.FilterList,
-                    contentDescription = "筛选",
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "搜索",
                     tint = PinkPrimary
                 )
             }

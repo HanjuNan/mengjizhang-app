@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+// Load API keys from secrets.properties
+val secretsFile = rootProject.file("secrets.properties")
+val secretsProperties = Properties()
+if (secretsFile.exists()) {
+    secretsProperties.load(secretsFile.inputStream())
 }
 
 android {
@@ -17,6 +26,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // API Keys from secrets.properties
+        buildConfigField("String", "SILICONFLOW_API_KEY", "\"${secretsProperties.getProperty("SILICONFLOW_API_KEY", "")}\"")
+        buildConfigField("String", "BAIDU_API_KEY", "\"${secretsProperties.getProperty("BAIDU_API_KEY", "")}\"")
+        buildConfigField("String", "BAIDU_SECRET_KEY", "\"${secretsProperties.getProperty("BAIDU_SECRET_KEY", "")}\"")
     }
 
     buildTypes {
@@ -37,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

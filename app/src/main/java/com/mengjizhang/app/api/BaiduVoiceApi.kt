@@ -10,6 +10,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.mengjizhang.app.BuildConfig
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,14 +20,14 @@ import java.util.concurrent.TimeUnit
  * 1. 在 https://ai.baidu.com/ 注册账号
  * 2. 创建语音识别应用
  * 3. 获取 API Key 和 Secret Key
- * 4. 在 BaiduVoiceConfig 中配置
+ * 4. 在项目根目录的 secrets.properties 中配置
  */
 object BaiduVoiceApi {
 
-    // ========== 配置区域 - 百度 API 凭证 ==========
+    // ========== 配置区域 - 从 BuildConfig 读取 ==========
     object Config {
-        const val API_KEY = "YOUR_BAIDU_API_KEY"
-        const val SECRET_KEY = "YOUR_BAIDU_SECRET_KEY"
+        val API_KEY: String get() = BuildConfig.BAIDU_API_KEY
+        val SECRET_KEY: String get() = BuildConfig.BAIDU_SECRET_KEY
 
         // 是否已配置（用于检查）
         fun isConfigured(): Boolean {

@@ -13,6 +13,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.ByteArrayOutputStream
+import com.mengjizhang.app.BuildConfig
 import java.util.concurrent.TimeUnit
 
 /**
@@ -23,12 +24,19 @@ import java.util.concurrent.TimeUnit
  * - 文本对话（Qwen、DeepSeek等）
  * - 视觉理解（GLM-4.1V）- 用于账单识别
  * - OCR识别（DeepSeek-OCR）
+ *
+ * 配置：在项目根目录的 secrets.properties 中设置 SILICONFLOW_API_KEY
  */
 object SiliconFlowApi {
 
     private const val TAG = "SiliconFlowApi"
     private const val BASE_URL = "https://api.siliconflow.cn/v1"
-    private const val API_KEY = "YOUR_SILICONFLOW_API_KEY"
+    private val API_KEY: String get() = BuildConfig.SILICONFLOW_API_KEY
+
+    /**
+     * 检查 API 是否已配置
+     */
+    fun isConfigured(): Boolean = API_KEY.isNotEmpty()
 
     // 可用模型列表
     object Models {

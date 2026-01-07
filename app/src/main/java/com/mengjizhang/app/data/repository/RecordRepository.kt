@@ -107,4 +107,40 @@ class RecordRepository(private val recordDao: RecordDao) {
 
         return Pair(startOfDay, endOfDay)
     }
+
+    /**
+     * 简单搜索
+     */
+    fun searchRecords(keyword: String): Flow<List<Record>> = recordDao.searchRecords(keyword)
+
+    /**
+     * 高级搜索
+     */
+    fun advancedSearch(
+        keyword: String = "",
+        startDate: Long? = null,
+        endDate: Long? = null,
+        minAmount: Double? = null,
+        maxAmount: Double? = null,
+        isExpense: Boolean? = null
+    ): Flow<List<Record>> = recordDao.advancedSearch(
+        keyword = keyword,
+        startDate = startDate,
+        endDate = endDate,
+        minAmount = minAmount,
+        maxAmount = maxAmount,
+        isExpense = isExpense
+    )
+
+    /**
+     * 获取日期范围内的支出
+     */
+    suspend fun getDailyExpense(startDate: Long, endDate: Long): Double =
+        recordDao.getDailyExpense(startDate, endDate)
+
+    /**
+     * 获取日期范围内的收入
+     */
+    suspend fun getDailyIncome(startDate: Long, endDate: Long): Double =
+        recordDao.getDailyIncome(startDate, endDate)
 }

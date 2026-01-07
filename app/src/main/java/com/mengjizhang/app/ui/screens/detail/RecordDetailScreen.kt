@@ -19,9 +19,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,6 +36,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,9 +69,19 @@ import java.util.Locale
 fun RecordDetailScreen(
     record: Record?,
     onBack: () -> Unit,
-    onDelete: (Record) -> Unit
+    onDelete: (Record) -> Unit,
+    onEdit: (Long) -> Unit = {}  // 编辑回调，传递记录ID
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showImagePreview by remember { mutableStateOf(false) }
+
+    // 图片全屏预览弹窗
+    if (showImagePreview && record?.imagePath != null) {
+        ImagePreviewDialog(
+            imagePath = record.imagePath!!,
+            onDismiss = { showImagePreview = false }
+        )
+    }
 
     if (record == null) {
         Box(
@@ -292,7 +310,7 @@ fun RecordDetailScreen(
                 }
             }
 
-            // 图片
+            // 图片 - 点击可放大预览
             if (record.imagePath != null) {
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -306,22 +324,53 @@ fun RecordDetailScreen(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
-                        Text(
-                            text = "附件图片",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "附件图片",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { showImagePreview = true }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ZoomIn,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = PinkPrimary
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "点击放大",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PinkPrimary
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        AsyncImage(
-                            model = File(record.imagePath),
-                            contentDescription = "账单图片",
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.FillWidth
-                        )
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { showImagePreview = true }
+                        ) {
+                            AsyncImage(
+                                model = File(record.imagePath),
+                                contentDescription = "账单图片，点击放大查看",
+                                modifier = Modifier.fillMaxWidth(),
+                                contentScale = ContentScale.FillWidth
+                            )
+                        }
                     }
                 }
             }
@@ -329,17 +378,43 @@ fun RecordDetailScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // 底部删除按钮
-        Box(
+        // 底部操作按钮
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // 编辑按钮
+            Button(
+                onClick = { onEdit(record.id) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PinkPrimary.copy(alpha = 0.1f)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = PinkPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "编辑",
+                    color = PinkPrimary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // 删除按钮
             Button(
                 onClick = { showDeleteDialog = true },
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -353,7 +428,7 @@ fun RecordDetailScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "删除此账单",
+                    text = "删除",
                     color = ExpenseRed,
                     fontWeight = FontWeight.Medium
                 )
@@ -418,5 +493,114 @@ private fun getInputMethodLabel(method: String): String {
         "voice" -> "语音记账"
         "camera" -> "拍照记账"
         else -> "手动记账"
+    }
+}
+
+/**
+ * 图片全屏预览弹窗 - 支持缩放和平移
+ */
+@Composable
+private fun ImagePreviewDialog(
+    imagePath: String,
+    onDismiss: () -> Unit
+) {
+    var scale by remember { mutableStateOf(1f) }
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(0.5f, 5f)
+                        offsetX += pan.x
+                        offsetY += pan.y
+                    }
+                }
+        ) {
+            // 图片
+            AsyncImage(
+                model = File(imagePath),
+                contentDescription = "图片预览",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offsetX,
+                        translationY = offsetY
+                    ),
+                contentScale = ContentScale.Fit
+            )
+
+            // 顶部关闭按钮
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 16.dp, end = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.5f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "关闭",
+                            tint = Color.White
+                        )
+                    }
+
+                    // 缩放提示
+                    Text(
+                        text = "双指缩放 · 滑动移动",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            // 重置缩放按钮
+            if (scale != 1f || offsetX != 0f || offsetY != 0f) {
+                TextButton(
+                    onClick = {
+                        scale = 1f
+                        offsetX = 0f
+                        offsetY = 0f
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 32.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.Black.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = "重置视图",
+                        color = Color.White
+                    )
+                }
+            }
+        }
     }
 }

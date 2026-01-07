@@ -16,11 +16,15 @@ sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object Records : Screen("records")
     data object Add : Screen("add")
+    data object Edit : Screen("edit")  // 编辑账单
     data object Stats : Screen("stats")
     data object Profile : Screen("profile")
     data object AI : Screen("ai")
     data object Camera : Screen("camera")
     data object RecordDetail : Screen("record_detail")
+    data object Budget : Screen("budget")  // 预算设置
+    data object Export : Screen("export")  // 数据导出/备份
+    data object Search : Screen("search")  // 搜索
 }
 
 data class BottomNavItem(

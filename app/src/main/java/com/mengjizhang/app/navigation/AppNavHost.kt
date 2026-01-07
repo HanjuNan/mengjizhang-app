@@ -15,11 +15,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.mengjizhang.app.ui.screens.add.AddScreen
 import com.mengjizhang.app.ui.screens.ai.AIScreen
+import com.mengjizhang.app.ui.screens.budget.BudgetScreen
 import com.mengjizhang.app.ui.screens.camera.CameraScreen
+import com.mengjizhang.app.ui.screens.export.ExportScreen
 import com.mengjizhang.app.ui.screens.detail.RecordDetailScreen
 import com.mengjizhang.app.ui.screens.home.HomeScreen
 import com.mengjizhang.app.ui.screens.profile.ProfileScreen
 import com.mengjizhang.app.ui.screens.records.RecordsScreen
+import com.mengjizhang.app.ui.screens.search.SearchScreen
 import com.mengjizhang.app.ui.screens.stats.StatsScreen
 import com.mengjizhang.app.ui.viewmodel.RecordViewModel
 
@@ -50,7 +53,8 @@ fun AppNavHost(
                 viewModel = recordViewModel,
                 onNavigateToDetail = { recordId ->
                     navController.navigate("${Screen.RecordDetail.route}/$recordId")
-                }
+                },
+                onNavigateToSearch = { navController.navigate(Screen.Search.route) }
             )
         }
 
@@ -115,6 +119,46 @@ fun AppNavHost(
             )
         }
 
+        // 编辑记录页面
+        composable(
+            route = "${Screen.Edit.route}/{recordId}",
+            arguments = listOf(navArgument("recordId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val recordId = backStackEntry.arguments?.getLong("recordId") ?: 0L
+            val recentRecords by recordViewModel.recentRecords.collectAsState()
+            val monthlyRecords by recordViewModel.monthlyRecords.collectAsState()
+
+            // 从记录中查找要编辑的数据
+            val record = recentRecords.find { it.id == recordId }
+                ?: monthlyRecords.find { it.id == recordId }
+
+            record?.let {
+                AddScreen(
+                    onBack = { navController.popBackStack() },
+                    onSave = { _, _, _, _, _, _ -> },  // 编辑模式不使用
+                    onUpdate = { id, amount, categoryId, isExpense, note, imagePath ->
+                        recordViewModel.updateRecord(
+                            recordId = id,
+                            amount = amount,
+                            categoryId = categoryId,
+                            isExpense = isExpense,
+                            note = note,
+                            imagePath = imagePath
+                        )
+                    },
+                    onNavigateToCamera = { mode ->
+                        navController.navigate("${Screen.Camera.route}?mode=$mode")
+                    },
+                    initialAmount = it.amount,
+                    initialNote = it.note,
+                    initialImagePath = it.imagePath,
+                    editRecordId = it.id,
+                    editCategoryId = it.categoryId,
+                    editIsExpense = it.isExpense
+                )
+            }
+        }
+
         composable(
             route = "${Screen.RecordDetail.route}/{recordId}",
             arguments = listOf(navArgument("recordId") { type = NavType.LongType })
@@ -132,6 +176,9 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() },
                 onDelete = { recordToDelete ->
                     recordViewModel.deleteRecord(recordToDelete)
+                },
+                onEdit = { recordId ->
+                    navController.navigate("${Screen.Edit.route}/$recordId")
                 }
             )
         }
@@ -141,13 +188,40 @@ fun AppNavHost(
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(
+                onNavigateToBudget = { navController.navigate(Screen.Budget.route) },
+                onNavigateToExport = { navController.navigate(Screen.Export.route) }
+            )
+        }
+
+        composable(Screen.Export.route) {
+            ExportScreen(
+                viewModel = recordViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Budget.route) {
+            BudgetScreen(
+                viewModel = recordViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.AI.route) {
             AIScreen(
                 onBack = { navController.popBackStack() },
                 viewModel = recordViewModel
+            )
+        }
+
+        composable(Screen.Search.route) {
+            SearchScreen(
+                viewModel = recordViewModel,
+                onBack = { navController.popBackStack() },
+                onNavigateToDetail = { recordId ->
+                    navController.navigate("${Screen.RecordDetail.route}/$recordId")
+                }
             )
         }
     }

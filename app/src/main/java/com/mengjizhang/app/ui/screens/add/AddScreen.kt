@@ -102,23 +102,38 @@ import java.io.File
 fun AddScreen(
     onBack: () -> Unit = {},
     onSave: (amount: Double, categoryId: Int, isExpense: Boolean, note: String, imagePath: String?, inputMethod: String) -> Unit = { _, _, _, _, _, _ -> },
+    onUpdate: (recordId: Long, amount: Double, categoryId: Int, isExpense: Boolean, note: String, imagePath: String?) -> Unit = { _, _, _, _, _, _ -> },
     onNavigateToCamera: (mode: String) -> Unit = {},
     initialAmount: Double? = null,
     initialNote: String? = null,
     initialImagePath: String? = null,
-    initialCategory: String? = null  // 分类名称，如"餐饮"、"交通"等
+    initialCategory: String? = null,  // 分类名称，如"餐饮"、"交通"等
+    editRecordId: Long? = null,  // 编辑模式：记录ID
+    editCategoryId: Int? = null,  // 编辑模式：分类ID
+    editIsExpense: Boolean? = null  // 编辑模式：是否支出
 ) {
+    val isEditMode = editRecordId != null
     val context = LocalContext.current
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    // 编辑模式：根据 editIsExpense 设置初始标签
+    var selectedTabIndex by remember { mutableIntStateOf(
+        if (editIsExpense == false) 1 else 0
+    ) }
     var amount by remember { mutableStateOf(initialAmount?.let {
         String.format("%.2f", it).trimEnd('0').trimEnd('.').ifEmpty { "0" }
     } ?: "0") }
-    // 根据 initialCategory 自动匹配分类
+    // 编辑模式：根据 editCategoryId 匹配分类；OCR模式：根据分类名称匹配
     var selectedCategory by remember { mutableStateOf<Category?>(
-        initialCategory?.let { categoryName ->
-            expenseCategories.find { it.name == categoryName }
-                ?: incomeCategories.find { it.name == categoryName }
+        when {
+            editCategoryId != null -> {
+                expenseCategories.find { it.id == editCategoryId }
+                    ?: incomeCategories.find { it.id == editCategoryId }
+            }
+            initialCategory != null -> {
+                expenseCategories.find { it.name == initialCategory }
+                    ?: incomeCategories.find { it.name == initialCategory }
+            }
+            else -> null
         }
     ) }
     var inputMethod by remember { mutableIntStateOf(if (initialAmount != null) 2 else 0) }
@@ -248,7 +263,7 @@ fun AddScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                 }
                 Text(
-                    text = "记一笔",
+                    text = if (isEditMode) "编辑账单" else "记一笔",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -256,26 +271,39 @@ fun AddScreen(
                     onClick = {
                         val amountValue = amount.toDoubleOrNull() ?: 0.0
                         if (amountValue > 0 && selectedCategory != null) {
-                            val method = when (inputMethod) {
-                                1 -> "voice"
-                                2 -> "camera"
-                                else -> "manual"
+                            if (isEditMode) {
+                                // 编辑模式：调用更新
+                                onUpdate(
+                                    editRecordId!!,
+                                    amountValue,
+                                    selectedCategory!!.id,
+                                    selectedTabIndex == 0,
+                                    note,
+                                    imagePath
+                                )
+                            } else {
+                                // 新增模式：调用保存
+                                val method = when (inputMethod) {
+                                    1 -> "voice"
+                                    2 -> "camera"
+                                    else -> "manual"
+                                }
+                                onSave(
+                                    amountValue,
+                                    selectedCategory!!.id,
+                                    selectedTabIndex == 0,
+                                    note,
+                                    imagePath,
+                                    method
+                                )
                             }
-                            onSave(
-                                amountValue,
-                                selectedCategory!!.id,
-                                selectedTabIndex == 0,
-                                note,
-                                imagePath,
-                                method
-                            )
                             onBack()
                         }
                     },
                     enabled = amount != "0" && amount.isNotEmpty() && selectedCategory != null
                 ) {
                     Text(
-                        "保存",
+                        text = if (isEditMode) "更新" else "保存",
                         color = if (amount != "0" && selectedCategory != null) PinkPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )

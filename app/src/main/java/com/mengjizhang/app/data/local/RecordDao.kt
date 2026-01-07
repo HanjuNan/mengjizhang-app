@@ -96,6 +96,57 @@ interface RecordDao {
      */
     @Query("DELETE FROM records")
     suspend fun deleteAll()
+
+    /**
+     * 搜索记录（按关键词匹配备注或分类名称）
+     */
+    @Query("""
+        SELECT * FROM records
+        WHERE note LIKE '%' || :keyword || '%'
+           OR categoryName LIKE '%' || :keyword || '%'
+        ORDER BY date DESC
+    """)
+    fun searchRecords(keyword: String): Flow<List<Record>>
+
+    /**
+     * 高级搜索（支持日期范围、金额范围、类型筛选）
+     */
+    @Query("""
+        SELECT * FROM records
+        WHERE (:keyword = '' OR note LIKE '%' || :keyword || '%' OR categoryName LIKE '%' || :keyword || '%')
+          AND (:startDate IS NULL OR date >= :startDate)
+          AND (:endDate IS NULL OR date < :endDate)
+          AND (:minAmount IS NULL OR amount >= :minAmount)
+          AND (:maxAmount IS NULL OR amount <= :maxAmount)
+          AND (:isExpense IS NULL OR isExpense = :isExpense)
+        ORDER BY date DESC
+    """)
+    fun advancedSearch(
+        keyword: String = "",
+        startDate: Long? = null,
+        endDate: Long? = null,
+        minAmount: Double? = null,
+        maxAmount: Double? = null,
+        isExpense: Boolean? = null
+    ): Flow<List<Record>>
+
+    /**
+     * 获取日期范围内的每日支出汇总
+     */
+    @Query("""
+        SELECT COALESCE(SUM(amount), 0) FROM records
+        WHERE isExpense = 1 AND date >= :startDate AND date < :endDate
+    """)
+    suspend fun getDailyExpense(startDate: Long, endDate: Long): Double
+
+    /**
+     * 获取日期范围内的每日收入汇总
+     */
+    @Query("""
+        SELECT COALESCE(SUM(amount), 0) FROM records
+        WHERE isExpense = 0 AND date >= :startDate AND date < :endDate
+    """)
+    suspend fun getDailyIncome(startDate: Long, endDate: Long): Double
 }
 
 /**

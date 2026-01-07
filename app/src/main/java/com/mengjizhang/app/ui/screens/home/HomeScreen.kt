@@ -46,6 +46,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.LinearProgressIndicator
+import com.mengjizhang.app.data.model.BudgetStatus
 import com.mengjizhang.app.data.model.Record
 import com.mengjizhang.app.ui.theme.ExpenseRed
 import com.mengjizhang.app.ui.theme.IncomeGreen
@@ -54,6 +56,7 @@ import com.mengjizhang.app.ui.theme.MintGreen
 import com.mengjizhang.app.ui.theme.PinkLight
 import com.mengjizhang.app.ui.theme.PinkPrimary
 import com.mengjizhang.app.ui.theme.SkyBlue
+import com.mengjizhang.app.ui.theme.SunnyYellow
 import com.mengjizhang.app.ui.viewmodel.RecordViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -74,6 +77,7 @@ fun HomeScreen(
     val monthlyIncome by viewModel?.monthlyIncome?.collectAsState() ?: remember { mutableStateOf(0.0) }
     val monthlyExpense by viewModel?.monthlyExpense?.collectAsState() ?: remember { mutableStateOf(0.0) }
     val monthlyBalance by viewModel?.monthlyBalance?.collectAsState() ?: remember { mutableStateOf(0.0) }
+    val budgetStatus by viewModel?.budgetStatus?.collectAsState() ?: remember { mutableStateOf(BudgetStatus.Empty) }
 
     LazyColumn(
         modifier = Modifier
@@ -108,7 +112,15 @@ fun HomeScreen(
                 onManualClick = { onNavigateToAdd() },
                 onAIClick = { onNavigateToAI() }
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // Budget Progress Card (仅当设置了预算时显示)
+        if (budgetStatus.budget > 0) {
+            item {
+                BudgetProgressCard(budgetStatus = budgetStatus)
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
 
         // Recent Records Header
@@ -463,6 +475,99 @@ private fun RecordItem(
                 fontWeight = FontWeight.SemiBold,
                 color = if (record.isExpense) ExpenseRed else IncomeGreen
             )
+        }
+    }
+}
+
+/**
+ * 预算进度卡片
+ */
+@Composable
+private fun BudgetProgressCard(budgetStatus: BudgetStatus) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "本月预算",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "${(budgetStatus.percentage * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = when {
+                        budgetStatus.isOverBudget -> ExpenseRed
+                        budgetStatus.percentage > 0.8f -> SunnyYellow
+                        else -> IncomeGreen
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 进度条
+            LinearProgressIndicator(
+                progress = { budgetStatus.percentage.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = when {
+                    budgetStatus.isOverBudget -> ExpenseRed
+                    budgetStatus.percentage > 0.8f -> SunnyYellow
+                    else -> IncomeGreen
+                },
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "已支出",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "¥${String.format("%.0f", budgetStatus.spent)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ExpenseRed
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = if (budgetStatus.isOverBudget) "已超支" else "剩余",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (budgetStatus.isOverBudget)
+                            "¥${String.format("%.0f", -budgetStatus.remaining)}"
+                        else
+                            "¥${String.format("%.0f", budgetStatus.remaining)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (budgetStatus.isOverBudget) ExpenseRed else IncomeGreen
+                    )
+                }
+            }
         }
     }
 }
