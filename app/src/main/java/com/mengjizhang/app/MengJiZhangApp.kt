@@ -38,7 +38,16 @@ fun MengJiZhangApp() {
                     onItemClick = { route ->
                         if (route == Screen.Add.route) {
                             navController.navigate(route)
+                        } else if (route == Screen.Home.route) {
+                            // 点击首页时，清空导航栈并回到首页
+                            navController.navigate(route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         } else {
+                            // 其他标签页的导航
                             navController.navigate(route) {
                                 popUpTo(Screen.Home.route) {
                                     saveState = true
