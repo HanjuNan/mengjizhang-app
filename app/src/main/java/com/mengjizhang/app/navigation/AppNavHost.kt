@@ -17,6 +17,7 @@ import com.mengjizhang.app.ui.screens.add.AddScreen
 import com.mengjizhang.app.ui.screens.ai.AIScreen
 import com.mengjizhang.app.ui.screens.budget.BudgetScreen
 import com.mengjizhang.app.ui.screens.camera.CameraScreen
+import com.mengjizhang.app.ui.screens.cloudsync.CloudSyncScreen
 import com.mengjizhang.app.ui.screens.export.ExportScreen
 import com.mengjizhang.app.ui.screens.detail.RecordDetailScreen
 import com.mengjizhang.app.ui.screens.home.HomeScreen
@@ -190,13 +191,20 @@ fun AppNavHost(
         composable(Screen.Profile.route) {
             ProfileScreen(
                 onNavigateToBudget = { navController.navigate(Screen.Budget.route) },
-                onNavigateToExport = { navController.navigate(Screen.Export.route) }
+                onNavigateToExport = { navController.navigate(Screen.Export.route) },
+                onNavigateToCloudSync = { navController.navigate(Screen.CloudSync.route) }
             )
         }
 
         composable(Screen.Export.route) {
             ExportScreen(
                 viewModel = recordViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.CloudSync.route) {
+            CloudSyncScreen(
                 onBack = { navController.popBackStack() }
             )
         }

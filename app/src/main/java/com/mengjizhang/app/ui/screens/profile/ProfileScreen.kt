@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
@@ -75,14 +76,16 @@ private val menuItems = listOf(
     MenuItem(Icons.Default.Flag, "预算设置"),
     MenuItem(Icons.Default.Notifications, "提醒设置"),
     MenuItem(Icons.Default.Backup, "数据备份"),
-    MenuItem(Icons.Default.Palette, "主题皮肤", showBadge = true),
+    MenuItem(Icons.Default.Cloud, "云同步", showBadge = true),
+    MenuItem(Icons.Default.Palette, "主题皮肤"),
     MenuItem(Icons.Default.Help, "帮助与反馈")
 )
 
 @Composable
 fun ProfileScreen(
     onNavigateToBudget: () -> Unit = {},
-    onNavigateToExport: () -> Unit = {}
+    onNavigateToExport: () -> Unit = {},
+    onNavigateToCloudSync: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -217,6 +220,7 @@ fun ProfileScreen(
                     when (item.label) {
                         "预算设置" -> onNavigateToBudget()
                         "数据备份" -> onNavigateToExport()
+                        "云同步" -> onNavigateToCloudSync()
                         // 其他菜单项可以在这里添加处理
                     }
                 }

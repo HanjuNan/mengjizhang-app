@@ -24,6 +24,7 @@ sealed class Screen(val route: String) {
     data object RecordDetail : Screen("record_detail")
     data object Budget : Screen("budget")  // 预算设置
     data object Export : Screen("export")  // 数据导出/备份
+    data object CloudSync : Screen("cloud_sync")  // 云同步
     data object Search : Screen("search")  // 搜索
 }
 

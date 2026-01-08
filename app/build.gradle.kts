@@ -31,6 +31,10 @@ android {
         buildConfigField("String", "SILICONFLOW_API_KEY", "\"${secretsProperties.getProperty("SILICONFLOW_API_KEY", "")}\"")
         buildConfigField("String", "BAIDU_API_KEY", "\"${secretsProperties.getProperty("BAIDU_API_KEY", "")}\"")
         buildConfigField("String", "BAIDU_SECRET_KEY", "\"${secretsProperties.getProperty("BAIDU_SECRET_KEY", "")}\"")
+
+        // Supabase
+        buildConfigField("String", "SUPABASE_URL", "\"${secretsProperties.getProperty("SUPABASE_URL", "")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secretsProperties.getProperty("SUPABASE_ANON_KEY", "")}\"")
     }
 
     buildTypes {
