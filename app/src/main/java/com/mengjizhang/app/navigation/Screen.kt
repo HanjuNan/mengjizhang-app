@@ -26,6 +26,10 @@ sealed class Screen(val route: String) {
     data object Export : Screen("export")  // 数据导出/备份
     data object CloudSync : Screen("cloud_sync")  // 云同步
     data object Search : Screen("search")  // 搜索
+    data object ThemeSettings : Screen("theme_settings")  // 主题设置
+    data object CategoryManagement : Screen("category_management")  // 分类管理
+    data object TagManagement : Screen("tag_management")  // 标签管理
+    data object ReminderSettings : Screen("reminder_settings")  // 提醒设置
 }
 
 data class BottomNavItem(

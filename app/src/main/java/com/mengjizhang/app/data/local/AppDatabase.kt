@@ -5,17 +5,22 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.mengjizhang.app.data.model.Budget
+import com.mengjizhang.app.data.model.CustomCategory
 import com.mengjizhang.app.data.model.Record
+import com.mengjizhang.app.data.model.RecordTag
+import com.mengjizhang.app.data.model.Tag
 
 @Database(
-    entities = [Record::class, Budget::class],
-    version = 2,
+    entities = [Record::class, Budget::class, CustomCategory::class, Tag::class, RecordTag::class],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun recordDao(): RecordDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun customCategoryDao(): CustomCategoryDao
+    abstract fun tagDao(): TagDao
 
     companion object {
         @Volatile

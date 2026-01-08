@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +37,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +55,7 @@ import com.mengjizhang.app.ui.theme.MintGreen
 import com.mengjizhang.app.ui.theme.PinkLight
 import com.mengjizhang.app.ui.theme.PinkPrimary
 import com.mengjizhang.app.ui.theme.SunnyYellow
+import com.mengjizhang.app.ui.viewmodel.RecordViewModel
 
 data class Badge(
     val name: String,
@@ -73,6 +79,7 @@ data class MenuItem(
 private val menuItems = listOf(
     MenuItem(Icons.Default.Wallet, "我的账户"),
     MenuItem(Icons.Default.Tag, "分类管理"),
+    MenuItem(Icons.Default.Label, "标签管理"),
     MenuItem(Icons.Default.Flag, "预算设置"),
     MenuItem(Icons.Default.Notifications, "提醒设置"),
     MenuItem(Icons.Default.Backup, "数据备份"),
@@ -83,10 +90,41 @@ private val menuItems = listOf(
 
 @Composable
 fun ProfileScreen(
+    viewModel: RecordViewModel? = null,
     onNavigateToBudget: () -> Unit = {},
     onNavigateToExport: () -> Unit = {},
-    onNavigateToCloudSync: () -> Unit = {}
+    onNavigateToCloudSync: () -> Unit = {},
+    onNavigateToThemeSettings: () -> Unit = {},
+    onNavigateToCategoryManagement: () -> Unit = {},
+    onNavigateToTagManagement: () -> Unit = {},
+    onNavigateToReminderSettings: () -> Unit = {}
 ) {
+    // 获取真实统计数据
+    val totalRecordCount by viewModel?.totalRecordCount?.collectAsState() ?: remember { mutableStateOf(0) }
+    val recordingDaysCount by viewModel?.recordingDaysCount?.collectAsState() ?: remember { mutableStateOf(0) }
+    val consecutiveDays by viewModel?.consecutiveDays?.collectAsState() ?: remember { mutableStateOf(0) }
+
+    // 计算用户等级
+    val userLevel = when {
+        totalRecordCount >= 1000 -> 10
+        totalRecordCount >= 500 -> 8
+        totalRecordCount >= 200 -> 6
+        totalRecordCount >= 100 -> 5
+        totalRecordCount >= 50 -> 4
+        totalRecordCount >= 20 -> 3
+        totalRecordCount >= 10 -> 2
+        totalRecordCount >= 1 -> 1
+        else -> 0
+    }
+
+    // 动态徽章
+    val dynamicBadges = listOf(
+        Badge("7天连续", "🔥", consecutiveDays >= 7),
+        Badge("首次存钱", "🐷", totalRecordCount >= 1),
+        Badge("理财新手", "📈", totalRecordCount >= 10),
+        Badge("记账大师", "💎", totalRecordCount >= 100)
+    )
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -159,7 +197,7 @@ fun ProfileScreen(
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "记账达人 Lv.5",
+                            text = if (userLevel > 0) "记账达人 Lv.$userLevel" else "记账新手",
                             style = MaterialTheme.typography.labelSmall,
                             color = PinkPrimary
                         )
@@ -167,14 +205,14 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Stats
+                    // Stats - 使用真实数据
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        ProfileStat(value = "128", label = "记账天数")
-                        ProfileStat(value = "356", label = "记账笔数")
-                        ProfileStat(value = "15", label = "连续打卡")
+                        ProfileStat(value = recordingDaysCount.toString(), label = "记账天数")
+                        ProfileStat(value = totalRecordCount.toString(), label = "记账笔数")
+                        ProfileStat(value = consecutiveDays.toString(), label = "连续打卡")
                     }
                 }
             }
@@ -204,7 +242,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(badges) { badge ->
+                items(dynamicBadges) { badge ->
                     BadgeItem(badge = badge)
                 }
             }
@@ -218,9 +256,13 @@ fun ProfileScreen(
                 item = item,
                 onClick = {
                     when (item.label) {
+                        "分类管理" -> onNavigateToCategoryManagement()
+                        "标签管理" -> onNavigateToTagManagement()
                         "预算设置" -> onNavigateToBudget()
+                        "提醒设置" -> onNavigateToReminderSettings()
                         "数据备份" -> onNavigateToExport()
                         "云同步" -> onNavigateToCloudSync()
+                        "主题皮肤" -> onNavigateToThemeSettings()
                         // 其他菜单项可以在这里添加处理
                     }
                 }

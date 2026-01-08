@@ -24,6 +24,10 @@ import com.mengjizhang.app.ui.screens.home.HomeScreen
 import com.mengjizhang.app.ui.screens.profile.ProfileScreen
 import com.mengjizhang.app.ui.screens.records.RecordsScreen
 import com.mengjizhang.app.ui.screens.search.SearchScreen
+import com.mengjizhang.app.ui.screens.settings.ThemeSettingsScreen
+import com.mengjizhang.app.ui.screens.category.CategoryManagementScreen
+import com.mengjizhang.app.ui.screens.tag.TagManagementScreen
+import com.mengjizhang.app.ui.screens.reminder.ReminderSettingsScreen
 import com.mengjizhang.app.ui.screens.stats.StatsScreen
 import com.mengjizhang.app.ui.viewmodel.RecordViewModel
 
@@ -66,6 +70,10 @@ fun AppNavHost(
             var ocrNote by remember { mutableStateOf<String?>(null) }
             var ocrImagePath by remember { mutableStateOf<String?>(null) }
 
+            // 获取自定义分类
+            val allExpenseCategories by recordViewModel.allExpenseCategories.collectAsState()
+            val allIncomeCategories by recordViewModel.allIncomeCategories.collectAsState()
+
             LaunchedEffect(backStackEntry) {
                 backStackEntry.savedStateHandle.apply {
                     get<Double>("ocr_amount")?.let { ocrAmount = it }
@@ -99,7 +107,9 @@ fun AppNavHost(
                 initialAmount = ocrAmount,
                 initialNote = ocrNote,
                 initialImagePath = ocrImagePath,
-                initialCategory = ocrCategory
+                initialCategory = ocrCategory,
+                allExpenseCategories = allExpenseCategories,
+                allIncomeCategories = allIncomeCategories
             )
         }
 
@@ -129,6 +139,10 @@ fun AppNavHost(
             val recentRecords by recordViewModel.recentRecords.collectAsState()
             val monthlyRecords by recordViewModel.monthlyRecords.collectAsState()
 
+            // 获取自定义分类
+            val allExpenseCategories by recordViewModel.allExpenseCategories.collectAsState()
+            val allIncomeCategories by recordViewModel.allIncomeCategories.collectAsState()
+
             // 从记录中查找要编辑的数据
             val record = recentRecords.find { it.id == recordId }
                 ?: monthlyRecords.find { it.id == recordId }
@@ -155,7 +169,9 @@ fun AppNavHost(
                     initialImagePath = it.imagePath,
                     editRecordId = it.id,
                     editCategoryId = it.categoryId,
-                    editIsExpense = it.isExpense
+                    editIsExpense = it.isExpense,
+                    allExpenseCategories = allExpenseCategories,
+                    allIncomeCategories = allIncomeCategories
                 )
             }
         }
@@ -190,9 +206,14 @@ fun AppNavHost(
 
         composable(Screen.Profile.route) {
             ProfileScreen(
+                viewModel = recordViewModel,
                 onNavigateToBudget = { navController.navigate(Screen.Budget.route) },
                 onNavigateToExport = { navController.navigate(Screen.Export.route) },
-                onNavigateToCloudSync = { navController.navigate(Screen.CloudSync.route) }
+                onNavigateToCloudSync = { navController.navigate(Screen.CloudSync.route) },
+                onNavigateToThemeSettings = { navController.navigate(Screen.ThemeSettings.route) },
+                onNavigateToCategoryManagement = { navController.navigate(Screen.CategoryManagement.route) },
+                onNavigateToTagManagement = { navController.navigate(Screen.TagManagement.route) },
+                onNavigateToReminderSettings = { navController.navigate(Screen.ReminderSettings.route) }
             )
         }
 
@@ -230,6 +251,30 @@ fun AppNavHost(
                 onNavigateToDetail = { recordId ->
                     navController.navigate("${Screen.RecordDetail.route}/$recordId")
                 }
+            )
+        }
+
+        composable(Screen.ThemeSettings.route) {
+            ThemeSettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.CategoryManagement.route) {
+            CategoryManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.TagManagement.route) {
+            TagManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.ReminderSettings.route) {
+            ReminderSettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

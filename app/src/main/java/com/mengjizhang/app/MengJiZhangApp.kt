@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -20,6 +21,14 @@ fun MengJiZhangApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // 处理小组件点击跳转
+    LaunchedEffect(Unit) {
+        MainActivity.pendingAddExpense?.let { isExpense ->
+            navController.navigate(Screen.Add.route)
+            MainActivity.pendingAddExpense = null
+        }
+    }
 
     // 需要显示底部导航栏的页面
     val showBottomBar = currentRoute in listOf(

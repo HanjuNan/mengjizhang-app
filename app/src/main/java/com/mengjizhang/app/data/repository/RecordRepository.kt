@@ -143,4 +143,19 @@ class RecordRepository(private val recordDao: RecordDao) {
      */
     suspend fun getDailyIncome(startDate: Long, endDate: Long): Double =
         recordDao.getDailyIncome(startDate, endDate)
+
+    /**
+     * 获取总记录数
+     */
+    fun getTotalRecordCount(): Flow<Int> = recordDao.getTotalRecordCount()
+
+    /**
+     * 获取记账天数
+     */
+    fun getRecordingDaysCount(): Flow<Int> = recordDao.getRecordingDaysCount()
+
+    /**
+     * 获取所有记录日期（用于计算连续打卡）
+     */
+    suspend fun getAllRecordDates(): List<String> = recordDao.getAllRecordDates()
 }

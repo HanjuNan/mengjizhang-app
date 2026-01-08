@@ -147,6 +147,30 @@ interface RecordDao {
         WHERE isExpense = 0 AND date >= :startDate AND date < :endDate
     """)
     suspend fun getDailyIncome(startDate: Long, endDate: Long): Double
+
+    /**
+     * 同步获取指定日期范围的记录（供小组件使用）
+     */
+    @Query("SELECT * FROM records WHERE date >= :startDate AND date < :endDate ORDER BY date DESC")
+    fun getRecordsBetweenDatesSync(startDate: Long, endDate: Long): List<Record>
+
+    /**
+     * 获取总记录数
+     */
+    @Query("SELECT COUNT(*) FROM records")
+    fun getTotalRecordCount(): Flow<Int>
+
+    /**
+     * 获取有记录的天数（不重复的日期数量）
+     */
+    @Query("SELECT COUNT(DISTINCT date(date/1000, 'unixepoch', 'localtime')) FROM records")
+    fun getRecordingDaysCount(): Flow<Int>
+
+    /**
+     * 获取所有记录日期（用于计算连续打卡）
+     */
+    @Query("SELECT DISTINCT date(date/1000, 'unixepoch', 'localtime') as recordDate FROM records ORDER BY recordDate DESC")
+    suspend fun getAllRecordDates(): List<String>
 }
 
 /**

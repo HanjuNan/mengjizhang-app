@@ -6,11 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.mengjizhang.app.data.local.AppDatabase
 import com.mengjizhang.app.data.local.CategoryExpense
 import com.mengjizhang.app.data.model.BudgetStatus
+import com.mengjizhang.app.data.model.Category
+import com.mengjizhang.app.data.model.CustomCategory
 import com.mengjizhang.app.data.model.Record
 import com.mengjizhang.app.data.model.expenseCategories
 import com.mengjizhang.app.data.model.incomeCategories
 import com.mengjizhang.app.data.repository.BudgetRepository
+import com.mengjizhang.app.data.repository.CustomCategoryRepository
 import com.mengjizhang.app.data.repository.RecordRepository
+import com.mengjizhang.app.widget.QuickAddWidgetProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,11 +28,13 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
 
     private val repository: RecordRepository
     private val budgetRepository: BudgetRepository
+    private val customCategoryRepository: CustomCategoryRepository
 
     init {
         val database = AppDatabase.getDatabase(application)
         repository = RecordRepository(database.recordDao())
         budgetRepository = BudgetRepository(database.budgetDao())
+        customCategoryRepository = CustomCategoryRepository(database.customCategoryDao())
     }
 
     // 当前年月
@@ -85,9 +91,92 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
     private val _monthlyBudget = MutableStateFlow(0.0)
     val monthlyBudget: StateFlow<Double> = _monthlyBudget.asStateFlow()
 
+    // 自定义分类
+    val customExpenseCategories: StateFlow<List<CustomCategory>> = customCategoryRepository.getExpenseCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val customIncomeCategories: StateFlow<List<CustomCategory>> = customCategoryRepository.getIncomeCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // 合并后的分类列表（预定义 + 自定义）
+    val allExpenseCategories: StateFlow<List<Category>> = customExpenseCategories.combine(
+        MutableStateFlow(expenseCategories)
+    ) { custom, predefined ->
+        predefined + custom.map { it.toCategory() }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), expenseCategories)
+
+    val allIncomeCategories: StateFlow<List<Category>> = customIncomeCategories.combine(
+        MutableStateFlow(incomeCategories)
+    ) { custom, predefined ->
+        predefined + custom.map { it.toCategory() }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), incomeCategories)
+
+    // 用户统计数据
+    val totalRecordCount: StateFlow<Int> = repository.getTotalRecordCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val recordingDaysCount: StateFlow<Int> = repository.getRecordingDaysCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    private val _consecutiveDays = MutableStateFlow(0)
+    val consecutiveDays: StateFlow<Int> = _consecutiveDays.asStateFlow()
+
     init {
         loadMonthlyData()
         loadBudgetData()
+        loadConsecutiveDays()
+    }
+
+    /**
+     * 计算连续打卡天数
+     */
+    private fun loadConsecutiveDays() {
+        viewModelScope.launch {
+            val dates = repository.getAllRecordDates()
+            _consecutiveDays.value = calculateConsecutiveDays(dates)
+        }
+    }
+
+    /**
+     * 计算连续天数
+     */
+    private fun calculateConsecutiveDays(dates: List<String>): Int {
+        if (dates.isEmpty()) return 0
+
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val today = dateFormat.format(java.util.Date())
+
+        var consecutive = 0
+        val calendar = Calendar.getInstance()
+
+        for (i in dates.indices) {
+            val expectedDate = dateFormat.format(calendar.time)
+
+            if (i == 0) {
+                // 第一天必须是今天或昨天
+                if (dates[i] == expectedDate) {
+                    consecutive = 1
+                } else {
+                    calendar.add(Calendar.DAY_OF_MONTH, -1)
+                    val yesterday = dateFormat.format(calendar.time)
+                    if (dates[i] == yesterday) {
+                        consecutive = 1
+                        calendar.add(Calendar.DAY_OF_MONTH, -1)
+                    } else {
+                        break
+                    }
+                }
+            } else {
+                if (dates[i] == expectedDate) {
+                    consecutive++
+                    calendar.add(Calendar.DAY_OF_MONTH, -1)
+                } else {
+                    break
+                }
+            }
+        }
+
+        return consecutive
     }
 
     /**
@@ -231,8 +320,13 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
         inputMethod: String = "manual"
     ) {
         viewModelScope.launch {
-            val categories = if (isExpense) expenseCategories else incomeCategories
-            val category = categories.find { it.id == categoryId } ?: return@launch
+            // 先从预定义分类查找，再从自定义分类查找
+            val predefinedCategories = if (isExpense) expenseCategories else incomeCategories
+            val customCategories = if (isExpense) customExpenseCategories.value else customIncomeCategories.value
+
+            val category = predefinedCategories.find { it.id == categoryId }
+                ?: customCategories.map { it.toCategory() }.find { it.id == categoryId }
+                ?: return@launch
 
             val record = Record(
                 amount = amount,
@@ -248,6 +342,8 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
 
             repository.addRecord(record)
             loadMonthlyData()  // 刷新数据
+            // 刷新小组件
+            QuickAddWidgetProvider.refreshAllWidgets(getApplication())
         }
     }
 
@@ -258,6 +354,8 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             repository.deleteRecord(record)
             loadMonthlyData()
+            // 刷新小组件
+            QuickAddWidgetProvider.refreshAllWidgets(getApplication())
         }
     }
 
@@ -274,8 +372,13 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
         date: Long = System.currentTimeMillis()
     ) {
         viewModelScope.launch {
-            val categories = if (isExpense) expenseCategories else incomeCategories
-            val category = categories.find { it.id == categoryId } ?: return@launch
+            // 先从预定义分类查找，再从自定义分类查找
+            val predefinedCategories = if (isExpense) expenseCategories else incomeCategories
+            val customCategories = if (isExpense) customExpenseCategories.value else customIncomeCategories.value
+
+            val category = predefinedCategories.find { it.id == categoryId }
+                ?: customCategories.map { it.toCategory() }.find { it.id == categoryId }
+                ?: return@launch
 
             val record = Record(
                 id = recordId,
@@ -292,6 +395,8 @@ class RecordViewModel(application: Application) : AndroidViewModel(application) 
 
             repository.updateRecord(record)
             loadMonthlyData()
+            // 刷新小组件
+            QuickAddWidgetProvider.refreshAllWidgets(getApplication())
         }
     }
 

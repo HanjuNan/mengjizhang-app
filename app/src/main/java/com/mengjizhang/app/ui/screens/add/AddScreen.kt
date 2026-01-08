@@ -110,7 +110,9 @@ fun AddScreen(
     initialCategory: String? = null,  // 分类名称，如"餐饮"、"交通"等
     editRecordId: Long? = null,  // 编辑模式：记录ID
     editCategoryId: Int? = null,  // 编辑模式：分类ID
-    editIsExpense: Boolean? = null  // 编辑模式：是否支出
+    editIsExpense: Boolean? = null,  // 编辑模式：是否支出
+    allExpenseCategories: List<Category> = expenseCategories,  // 所有支出分类（预定义+自定义）
+    allIncomeCategories: List<Category> = incomeCategories  // 所有收入分类（预定义+自定义）
 ) {
     val isEditMode = editRecordId != null
     val context = LocalContext.current
@@ -126,12 +128,12 @@ fun AddScreen(
     var selectedCategory by remember { mutableStateOf<Category?>(
         when {
             editCategoryId != null -> {
-                expenseCategories.find { it.id == editCategoryId }
-                    ?: incomeCategories.find { it.id == editCategoryId }
+                allExpenseCategories.find { it.id == editCategoryId }
+                    ?: allIncomeCategories.find { it.id == editCategoryId }
             }
             initialCategory != null -> {
-                expenseCategories.find { it.name == initialCategory }
-                    ?: incomeCategories.find { it.name == initialCategory }
+                allExpenseCategories.find { it.name == initialCategory }
+                    ?: allIncomeCategories.find { it.name == initialCategory }
             }
             else -> null
         }
@@ -145,7 +147,7 @@ fun AddScreen(
     var showVoiceOverlay by remember { mutableStateOf(false) }
     var isListening by remember { mutableStateOf(false) }
 
-    val currentCategories = if (selectedTabIndex == 0) expenseCategories else incomeCategories
+    val currentCategories = if (selectedTabIndex == 0) allExpenseCategories else allIncomeCategories
 
     // 当 OCR 数据更新时，自动更新状态
     LaunchedEffect(initialAmount, initialNote, initialImagePath, initialCategory) {
@@ -157,8 +159,8 @@ fun AddScreen(
         initialImagePath?.let { imagePath = it }
         initialCategory?.let { categoryName ->
             // 根据分类名称匹配对应的分类
-            val matchedCategory = expenseCategories.find { it.name == categoryName }
-                ?: incomeCategories.find { it.name == categoryName }
+            val matchedCategory = allExpenseCategories.find { it.name == categoryName }
+                ?: allIncomeCategories.find { it.name == categoryName }
             matchedCategory?.let {
                 selectedCategory = it
                 // 如果是收入分类，切换到收入标签
